@@ -1,16 +1,87 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+import os
+import json
+import requests
+from dotenv import load_dotenv
 
 
-# Press the green button in the gutter to run the script.
+class NalogRuPython:
+    HOST = 'irkkt-mobile.nalog.ru:8888'
+    DEVICE_OS = 'iOS'
+    CLIENT_VERSION = '2.9.0'
+    DEVICE_ID = '7C82010F-16CC-446B-8F66-FC4080C66521'
+    ACCEPT = '*/*'
+    USER_AGENT = 'billchecker/2.9.0 (iPhone; iOS 13.6; Scale/2.00)'
+    ACCEPT_LANGUAGE = 'ru-RU;q=1, en-US;q=0.9'
+
+    def __init__(self):
+        load_dotenv()
+        self.__session_id = None
+        self.set_session_id()
+
+    def set_session_id(self) -> None:
+        if os.getenv('CLIENT_SECRET') is None:
+            raise ValueError('OS environments not content "CLIENT_SECRET"')
+        if os.getenv('INN') is None:
+            raise ValueError('OS environments not content "INN"')
+        if os.getenv('PASSWORD') is None:
+            raise ValueError('OS environments not content "PASSWORD"')
+
+        url = f'https://{self.HOST}/v2/mobile/users/lkfl/auth'
+        payload = {
+            'inn': os.getenv('INN'),
+            'client_secret': os.getenv('CLIENT_SECRET'),
+            'password': os.getenv('PASSWORD')
+        }
+        headers = {
+            'Host': self.HOST,
+            'Accept': self.ACCEPT,
+            'Device-OS': self.DEVICE_OS,
+            'Device-Id': self.DEVICE_ID,
+            'clientVersion': self.CLIENT_VERSION,
+            'Accept-Language': self.ACCEPT_LANGUAGE,
+            'User-Agent': self.USER_AGENT,
+        }
+
+        resp = requests.post(url, json=payload, headers=headers)
+        self.__session_id = resp.json()['sessionId']
+
+    def _get_ticket_id(self, qr: str) -> str:
+        url = f'https://{self.HOST}/v2/ticket'
+        payload = {'qr': qr}
+        headers = {
+            'Host': self.HOST,
+            'Accept': self.ACCEPT,
+            'Device-OS': self.DEVICE_OS,
+            'Device-Id': self.DEVICE_ID,
+            'clientVersion': self.CLIENT_VERSION,
+            'Accept-Language': self.ACCEPT_LANGUAGE,
+            'sessionId': self.__session_id,
+            'User-Agent': self.USER_AGENT,
+        }
+        resp = requests.post(url, json=payload, headers=headers)
+        return resp.json()["id"]
+
+    def get_ticket(self, qr: str) -> dict:
+        ticket_id = self._get_ticket_id(qr)
+        url = f'https://{self.HOST}/v2/tickets/{ticket_id}'
+        headers = {
+            'Host': self.HOST,
+            'sessionId': self.__session_id,
+            'Device-OS': self.DEVICE_OS,
+            'clientVersion': self.CLIENT_VERSION,
+            'Device-Id': self.DEVICE_ID,
+            'Accept': self.ACCEPT,
+            'User-Agent': self.USER_AGENT,
+            'Accept-Language': self.ACCEPT_LANGUAGE,
+        }
+        resp = requests.get(url, headers=headers,)
+        return resp.json()
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    client = NalogRuPython()
+    qr_code = "t=20211211T000300&s=344.97&fn=9960440300738941&i=28144&fp=3622676507&n=1"
+    ticket = client.get_ticket(qr_code)
+    from pprint import pprint
+    pprint(ticket['ticket']['document']['receipt']['items'])
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
