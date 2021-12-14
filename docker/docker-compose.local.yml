@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  database:
+    image: "postgres"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=my_statistics
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - /var/lib/postgresql/data
+    restart: "${DOCKER_RESTART: -no}"
+    env_file:
+      - .env
+
+  rabbit_mq:
+    image: "rabbitmq"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      - RABBIT_DEFAULT_USER=guest
+      - RABBIT_DEFAULT_PASS=guest
+    volumes:
+      - /var/lib/rabbitmq
+    restart: "${DOCKER_RESTART: -no}"
+    env_file:
+      - .env
