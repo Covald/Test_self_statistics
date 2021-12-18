@@ -1,29 +1,29 @@
-version: "3.7"
+version: "3.8"
 
 services:
-  database:
-    image: "postgres"
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=my_statistics
-      - POSTGRES_PASSWORD=postgres
+  web:
+    build:
+      dockerfile: ./docker/django/Dockerfile
+      context: .
+    command: sh ./docker/django/local-entrypoint.sh
     volumes:
-      - /var/lib/postgresql/data
-    restart: "${DOCKER_RESTART: -no}"
+      - type: bind
+        source: .
+        target: /code/
+    expose:
+      - "8000"
+    restart: "${DOCKER_RESTART:-unless-stopped}"
     env_file:
       - .env
-
-  rabbit_mq:
-    image: "rabbitmq"
+  nginx:
+    build:
+      dockerfile: ./docker/nginx/Dockerfile
+      context: .
     ports:
-      - "15672:15672"
-      - "5672:5672"
-    environment:
-      - RABBIT_DEFAULT_USER=guest
-      - RABBIT_DEFAULT_PASS=guest
-    volumes:
-      - /var/lib/rabbitmq
-    restart: "${DOCKER_RESTART: -no}"
+      - "8443:443"
+      - "8442:80"
+    depends_on:
+      - web
+    restart: "${DOCKER_RESTART:-unless-stopped}"
     env_file:
       - .env

@@ -1,2 +1,8 @@
-/.env
+/.venv
+/.idea
+.env
 /docker-compose.yml
+/db.sqlite3
+/static
+/~
+/main/schemes/__pycache__
