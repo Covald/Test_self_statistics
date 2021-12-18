@@ -15,7 +15,6 @@ class TGMessage(BaseModel):
     chat: TGChat
     forward_from: Optional[TGUser]
     forward_date: Optional[datetime]
-    reply_to_message: Optional['TGMessage']
     text: str
 
 

@@ -1,14 +1,16 @@
 import json
 import logging
-from main.schemes.tg_message import TGRequest
-import aiohttp
+
 import requests
 from django.core.handlers.wsgi import WSGIRequest
 from ninja import NinjaAPI
 from ninja.errors import ValidationError
 from ninja.responses import Response
 
-api = NinjaAPI(urls_namespace='main:api')
+from main.schemes.tg_message import TGRequest
+
+api = NinjaAPI(title='Telegram API', urls_namespace='main:api', version='1.0.0',
+               description='Описание эндпоинтов для API для телеграмма')
 logger = logging.getLogger(__package__)
 TURL = "https://api.telegram.org/bot%s/%s"
 
@@ -20,7 +22,8 @@ def send_exceprion_message(request: WSGIRequest, exc):
     return api.create_response(request, {}, status=200)
 
 
-@api.post('webhook', url_name='webhook')
+@api.post('webhook', url_name='webhook', tags=['Telegram'], summary='WebHook для telegram.',
+          description="Отвечает всегда статусом 200. Если Происходит ошибка, то высылает ее в чат пользователю.")
 async def test_hook(request: WSGIRequest, tg_request: TGRequest) -> Response:
     logger.info('Receive message')
     message = tg_request.message
