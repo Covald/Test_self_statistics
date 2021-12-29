@@ -1,3 +1,9 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*/__pycache__/
+
 /.venv
 /.idea
 .env
@@ -5,4 +11,5 @@
 /db.sqlite3
 /static
 /~
-/main/schemes/__pycache__
+/main/schemes/__pycache__!/media/
+/media

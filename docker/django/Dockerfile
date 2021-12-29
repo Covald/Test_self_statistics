@@ -24,7 +24,7 @@ ENV UID=${UID} \
   # dockerfile:
   MY_PIP_CONSTRAINT='pip~=21.1.1'
 
-RUN apt-get update && apt-get install -y bash curl \
+RUN apt-get update && apt-get install -y bash curl libzbar0 \
     && curl -sSL 'https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py' | python \
     && poetry --version
 

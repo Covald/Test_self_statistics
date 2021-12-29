@@ -1,6 +1,8 @@
+import json
 import os
 
 import requests
+from django.conf import settings
 from dotenv import load_dotenv
 
 
@@ -33,18 +35,11 @@ class FNSClient:
         return self._session
 
     def _get_session_id(self) -> str:
-        if os.getenv('FNS_CLIENT_SECRET') is None:
-            raise ValueError('OS environments not content "CLIENT_SECRET"')
-        if os.getenv('FNS_INN') is None:
-            raise ValueError('OS environments not content "INN"')
-        if os.getenv('FNS_PASSWORD') is None:
-            raise ValueError('OS environments not content "PASSWORD"')
-
         url = f'https://{self.HOST}/v2/mobile/users/lkfl/auth'
         payload = {
-            'inn': os.getenv('FNS_INN'),
-            'client_secret': os.getenv('FNS_CLIENT_SECRET'),
-            'password': os.getenv('FNS_PASSWORD')
+            'inn': settings.FNS_INN,
+            'client_secret': settings.FNS_CLIENT_SECRET,
+            'password': settings.FNS_PASSWORD
         }
         headers = {
             'Host': self.HOST,
@@ -57,7 +52,7 @@ class FNSClient:
         }
 
         resp = requests.post(url, json=payload, headers=headers)
-        return resp.json()['sessionId']
+        return json.loads(resp.content)['sessionId']
 
     def _get_ticket_id(self, parsed_qr: str) -> str:
         url = f'https://{self.HOST}/v2/ticket'
