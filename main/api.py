@@ -1,82 +1,52 @@
 import json
 import logging
 
-import requests
 from django.core.handlers.wsgi import WSGIRequest
 from ninja import NinjaAPI
 from ninja.errors import ValidationError
 from ninja.responses import Response
 
-from main.schemes.tg_message import TGRequest
+from main.models import Ticket
+from main.services import send_message, reply_to_message, download_photo, QRService
 
 api = NinjaAPI(title='Telegram API', urls_namespace='main:api', version='1.0.0',
                description='Описание эндпоинтов для API для телеграмма')
 logger = logging.getLogger(__package__)
-TURL = "https://api.telegram.org/bot%s/%s"
+
+TOKEN = "2090537301:AAGq1hM-yfl7PvfGY5LSS04ysodAB3bAbvU"
 
 
 @api.exception_handler(ValidationError)
-def send_exceprion_message(request: WSGIRequest, exc):
+def send_exception_message(request: WSGIRequest, exc):
     message = json.loads(request.body)['message']
-    sync_send_message(message['chat']['id'], f"Ошибка! Вы отправили неподдерживаемый файл.")
+    logger.critical(message)
+    send_message(message['chat']['id'], f"Ошибка! Вы отправили неподдерживаемый файл.")
     return api.create_response(request, {}, status=200)
 
 
 @api.post('webhook', url_name='webhook', tags=['Telegram'], summary='WebHook для telegram.',
           description="Отвечает всегда статусом 200. Если Происходит ошибка, то высылает ее в чат пользователю.")
-async def test_hook(request: WSGIRequest, tg_request: TGRequest) -> Response:
-    logger.info('Receive message')
-    message = tg_request.message
-    logger.error(message)
-    await send_message(message.chat.id, message.text)
-    return Response(data=None, status=200)
-
-
-@api.get('webhook', url_name='webhook')
 def test_hook(request: WSGIRequest) -> Response:
-    logger.info('Receive message')
-    logger.info(str(request.body))
+    message = json.loads(request.body)["message"]
+    logger.debug('Receive message')
+    logger.debug(message)
+    file_name = None
+    if message.get("photo") is not None:
+        logger.debug('Receive photo')
+        try:
+            file_name = download_photo(message)
+            reply_to_message(message, 'Фото загружены.')
+        except Exception:
+            reply_to_message(message, 'Что-то пошло не так с загрузкой фото. :(')
 
+        try:
+            qr = QRService()
+            qr.process_photo(file_name)
+            reply_to_message(message, 'QR обработан и чек сохранен в базе.')
+        except Exception as err:
+            print(err)
+            reply_to_message(message, 'Что-то пошло не так с обработкой QR кода. :(')
+    else:
+        reply_to_message(message, f'ECHO: {message.get("text")}')
+    logger.error('------------------')
     return Response(data=None, status=200)
-
-
-async def send_message(chat_id, text):
-    message = {
-        'chat_id': chat_id,
-        'text': text
-    }
-    await _request('sendMessage', message)
-
-
-def sync_send_message(chat_id, text):
-    message = {
-        'chat_id': chat_id,
-        'text': text
-    }
-    _sync_request('sendMessage', message)
-
-
-async def _request(method, message):
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    resp = requests.post(TURL % ("2090537301:AAGq1hM-yfl7PvfGY5LSS04ysodAB3bAbvU", method),
-                         data=json.dumps(message),
-                         headers=headers)
-    try:
-        assert resp.status_code == 200
-    except AssertionError:
-        pass
-
-
-def _sync_request(method, message):
-    headers = {
-        'Content-Type': 'application/json'
-    }
-    resp = requests.post(TURL % ("2090537301:AAGq1hM-yfl7PvfGY5LSS04ysodAB3bAbvU", method),
-                         data=json.dumps(message),
-                         headers=headers)
-    try:
-        assert resp.status_code == 200
-    except AssertionError:
-        pass
